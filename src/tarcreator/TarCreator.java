@@ -13,7 +13,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.Charset;
@@ -37,19 +36,25 @@ import org.apache.commons.compress.utils.IOUtils;
  */
 public class TarCreator {
 
-    FileOutputStream fos;
+ //   FileOutputStream fos;
     Path filePath;
     private String fileName;
     private final static Charset ENCODING = StandardCharsets.UTF_8;
     Writer writer;
     private int i;
     TarArchiveEntry tar_file;
-    BufferedOutputStream bOut;
-    TarArchiveOutputStream tOut;
+  //  BufferedOutputStream bOut;
+  //  TarArchiveOutputStream tOut;
     private List<File> files;
+    int folderNumber;
 
-    private final static String TXT_FILE_TO_READ = "/Users/rachelmills/Desktop/ClueWeb/WikiParser/ID_Text.txt";
-    private final static String OUTPUT_FILE_PATH = "/Users/rachelmills/Desktop/ClueWeb/TarCreator/Files/";
+
+    //private final static String TXT_FILE_TO_READ = "/Users/rachelmills/Desktop/ClueWeb/WikiParser/ID_Text.txt";
+    //private final static String OUTPUT_FILE_PATH = "/Users/rachelmills/Desktop/ClueWeb/TarCreator/Files/";
+    //private final static String TXT_FILE_TO_READ = "/home/wikiprep/wikiprep/work/WikiParser/ID_Text.txt";
+    //private final static String OUTPUT_FILE_PATH = "/home/wikiprep/wikiprep/work/TarCreator/Files/";
+      private final static String TXT_FILE_TO_READ = "/Volumes/Untitled/wikiprep/WikiOutput/ID_Text.txt";
+      private final static String OUTPUT_FILE_PATH = "/Volumes/Untitled/wikiprep/WikiOutput/Files/";
 
     /**
      * @param args the command line arguments
@@ -58,17 +63,37 @@ public class TarCreator {
      */
     public static void main(String[] args) throws FileNotFoundException, IOException, ArchiveException {
         TarCreator tc = new TarCreator();
+        File f = new File("f");
+        // Wrap the output file stream in streams that will tar and gzip everything
+        FileOutputStream fos = new FileOutputStream(new File(f.getCanonicalPath() + ".tar" + ".gz"));
+        TarArchiveOutputStream taos = new TarArchiveOutputStream(
+                new GZIPOutputStream(new BufferedOutputStream(fos)));
+        
+//        tc.readFiles();
         tc.readFile(tc.getFileName());
         tc.processLineByLine();
-        tc.readFilesJustWritten();
-        tc.compressFiles(tc.getFiles(), new File("f"));
+        for (int i=0; i<tc.folderNumber; i++) {
+            tc.readFilesJustWritten(OUTPUT_FILE_PATH + "Files" + i);
+            tc.compressFiles(tc.getFiles(), new File("f"), fos, taos);
+        }
+        // Close everything up
+        taos.close();
+        fos.close();
     }
 
+//    public void readFiles() {
+//        File folder = new File("/Volumes/Untitled/wikiprep/WikiOutput/Files/");
+//        File[] listOfFiles = folder.listFiles();
+//        for (File file : listOfFiles) {
+//            System.out.println("file  " + file.getName());
+//        }
+//    }
+    
     public TarCreator() throws FileNotFoundException {
         fileName = TXT_FILE_TO_READ;
         writer = null;
-        bOut = new BufferedOutputStream(fos);
-        tOut = new TarArchiveOutputStream(bOut);
+     //   bOut = new BufferedOutputStream(fos);
+     //   tOut = new TarArchiveOutputStream(bOut);
         files = new ArrayList<>();
     }
 
@@ -78,27 +103,40 @@ public class TarCreator {
 
     private void processLineByLine() throws IOException, ArchiveException {
         try (Scanner scanner = new Scanner(filePath, ENCODING.name())) {
-            while (scanner.hasNextLine()) {
-                processLine(scanner.nextLine());
+            
+            int n = 0;
+            
+            for (int j =500000; j <= 6000000; j +=500000) {
+                
+                File outputFile = new File(OUTPUT_FILE_PATH + "Files" + n + "/");
+                outputFile.mkdir();
+                
+                while (scanner.hasNextLine() && i < j) {
+                    processLine(scanner.nextLine(), n);
+                    i++;
+                }
+                n++;
             }
+            
+            folderNumber = n;
         }
     }
 
-    private void processLine(String nextLine) throws IOException, ArchiveException {
+    private void processLine(String nextLine, int n) throws IOException, ArchiveException {
         fileName = "filename" + i + ".txt";
         i++;
 
-        //use a second Scanner to parse the content of each line 
+        //use a second Scanner to parse the cxontent of each line 
         Scanner sc = new Scanner(nextLine);
         sc.useDelimiter("~~}~~");
 
         int src = sc.nextInt();
+
         String description = sc.next();
-        String j = String.valueOf(i);
 
         try {
             writer = new BufferedWriter(new OutputStreamWriter(
-                    new FileOutputStream(OUTPUT_FILE_PATH + fileName), "utf-8"));
+                    new FileOutputStream(OUTPUT_FILE_PATH + "Files" + n + "/" + fileName), "utf-8"));
             writer.write(src + "," + description + "\n");
         } catch (IOException ex) {
             System.out.println("Error:  " + ex);
@@ -110,30 +148,19 @@ public class TarCreator {
         }
     }
 
-    private void readFilesJustWritten() {
-        String target_dir = OUTPUT_FILE_PATH;
+    private void readFilesJustWritten(String path) {
+        String target_dir = path + "/";
         File dir = new File(target_dir);
         files = new ArrayList<>(Arrays.asList(dir.listFiles()));
     }
 
-    public void compressFiles(ArrayList<File> files, File file) throws IOException {
+    public void compressFiles(ArrayList<File> files, File file, FileOutputStream fos, TarArchiveOutputStream taos) throws IOException {
         System.out.println("Compressing " + files.size() + " to " + file.getAbsoluteFile());
 
-        fos = new FileOutputStream(new File(file.getCanonicalPath() + ".tar" + ".gz"));
-        // Wrap the output file stream in streams that will tar and gzip everything
-        TarArchiveOutputStream taos = new TarArchiveOutputStream(
-                new GZIPOutputStream(new BufferedOutputStream(fos)));
-        // TAR has an 8 gig file limit by default, this gets around that
-//        taos.setBigNumberMode(TarArchiveOutputStream.BIGNUMBER_STAR); // to get past the 8 gig limit
-        // TAR originally didn't support long file names, so enable the support for it
-  //      taos.setLongFileMode(TarArchiveOutputStream.LONGFILE_GNU);
-        // Get to putting all the files in the compressed output file
+        // Put all the files in the compressed output file
         for (File f : files) {
             addFilesToCompression(taos, f, ".");
         }
-        // Close everything up
-        taos.close();
-        fos.close();
     }
 
     //add entries to archive file...
