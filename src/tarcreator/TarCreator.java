@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package tarcreator;
 
 import java.io.BufferedInputStream;
@@ -36,25 +31,21 @@ import org.apache.commons.compress.utils.IOUtils;
  */
 public class TarCreator {
 
- //   FileOutputStream fos;
     Path filePath;
     private String fileName;
     private final static Charset ENCODING = StandardCharsets.UTF_8;
     Writer writer;
     private int i;
     TarArchiveEntry tar_file;
-  //  BufferedOutputStream bOut;
-  //  TarArchiveOutputStream tOut;
     private List<File> files;
     int folderNumber;
-
 
     //private final static String TXT_FILE_TO_READ = "/Users/rachelmills/Desktop/ClueWeb/WikiParser/ID_Text.txt";
     //private final static String OUTPUT_FILE_PATH = "/Users/rachelmills/Desktop/ClueWeb/TarCreator/Files/";
     //private final static String TXT_FILE_TO_READ = "/home/wikiprep/wikiprep/work/WikiParser/ID_Text.txt";
     //private final static String OUTPUT_FILE_PATH = "/home/wikiprep/wikiprep/work/TarCreator/Files/";
-      private final static String TXT_FILE_TO_READ = "/Volumes/Untitled/wikiprep/WikiOutput/ID_Text.txt";
-      private final static String OUTPUT_FILE_PATH = "/Volumes/Untitled/wikiprep/WikiOutput/Files/";
+    private final static String TXT_FILE_TO_READ = "/Volumes/Untitled/wikiprep/WikiOutput/ID_Text.txt";
+    private final static String OUTPUT_FILE_PATH = "/Volumes/Untitled/wikiprep/WikiOutput/Files/";
 
     /**
      * @param args the command line arguments
@@ -63,22 +54,18 @@ public class TarCreator {
      */
     public static void main(String[] args) throws FileNotFoundException, IOException, ArchiveException {
         TarCreator tc = new TarCreator();
-        File f = new File("f");
-        // Wrap the output file stream in streams that will tar and gzip everything
-        FileOutputStream fos = new FileOutputStream(new File(f.getCanonicalPath() + ".tar" + ".gz"));
-        TarArchiveOutputStream taos = new TarArchiveOutputStream(
-                new GZIPOutputStream(new BufferedOutputStream(fos)));
-        
+        File f = new File("wikiTar");
+        try (FileOutputStream fos = new FileOutputStream(new File(f.getCanonicalPath() + ".tar" + ".gz"));
+                TarArchiveOutputStream taos = new TarArchiveOutputStream(new GZIPOutputStream(new BufferedOutputStream(fos)))) {
+
 //        tc.readFiles();
-        tc.readFile(tc.getFileName());
-        tc.processLineByLine();
-        for (int i=0; i<tc.folderNumber; i++) {
-            tc.readFilesJustWritten(OUTPUT_FILE_PATH + "Files" + i);
-            tc.compressFiles(tc.getFiles(), new File("f"), fos, taos);
+            tc.readFile(tc.getFileName());
+            tc.processLineByLine();
+            for (int i = 0; i < tc.folderNumber; i++) {
+                tc.readFilesJustWritten(OUTPUT_FILE_PATH + "Files" + i);
+                tc.compressFiles(tc.getFiles(), new File("wikiTar"), fos, taos);
+            }
         }
-        // Close everything up
-        taos.close();
-        fos.close();
     }
 
 //    public void readFiles() {
@@ -88,12 +75,9 @@ public class TarCreator {
 //            System.out.println("file  " + file.getName());
 //        }
 //    }
-    
     public TarCreator() throws FileNotFoundException {
         fileName = TXT_FILE_TO_READ;
         writer = null;
-     //   bOut = new BufferedOutputStream(fos);
-     //   tOut = new TarArchiveOutputStream(bOut);
         files = new ArrayList<>();
     }
 
@@ -103,41 +87,34 @@ public class TarCreator {
 
     private void processLineByLine() throws IOException, ArchiveException {
         try (Scanner scanner = new Scanner(filePath, ENCODING.name())) {
-            
-            int n = 0;
-            
-            for (int j =500000; j <= 6000000; j +=500000) {
-                
-                File outputFile = new File(OUTPUT_FILE_PATH + "Files" + n + "/");
-                outputFile.mkdir();
-                
-                while (scanner.hasNextLine() && i < j) {
-                    processLine(scanner.nextLine(), n);
-                    i++;
-                }
-                n++;
+
+            File outputFile = new File(OUTPUT_FILE_PATH + "Files" + "/");
+            outputFile.mkdir();
+
+            while (scanner.hasNextLine()) {
+                processLine(scanner.nextLine(), i);
+                i++;
             }
-            
-            folderNumber = n;
         }
     }
 
-    private void processLine(String nextLine, int n) throws IOException, ArchiveException {
-        fileName = "filename" + i + ".txt";
-        i++;
+    private void processLine(String nextLine, int i) throws IOException, ArchiveException {
 
-        //use a second Scanner to parse the cxontent of each line 
+        //use a second Scanner to parse the content of each line 
         Scanner sc = new Scanner(nextLine);
         sc.useDelimiter("~~}~~");
 
         int src = sc.nextInt();
 
+        fileName = src + "-" + i + ".txt";
+
+        String title = sc.next();
         String description = sc.next();
 
         try {
             writer = new BufferedWriter(new OutputStreamWriter(
-                    new FileOutputStream(OUTPUT_FILE_PATH + "Files" + n + "/" + fileName), "utf-8"));
-            writer.write(src + "," + description + "\n");
+                    new FileOutputStream(OUTPUT_FILE_PATH + "Files" + "/" + fileName), "utf-8"));
+            writer.write(title + " " + description + "\n");
         } catch (IOException ex) {
             System.out.println("Error:  " + ex);
         } finally {
