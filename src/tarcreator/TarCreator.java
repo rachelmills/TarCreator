@@ -38,14 +38,13 @@ public class TarCreator {
     private int i;
     TarArchiveEntry tar_file;
     private List<File> files;
-    int folderNumber;
 
     //private final static String TXT_FILE_TO_READ = "/Users/rachelmills/Desktop/ClueWeb/WikiParser/ID_Text.txt";
     //private final static String OUTPUT_FILE_PATH = "/Users/rachelmills/Desktop/ClueWeb/TarCreator/Files/";
-    //private final static String TXT_FILE_TO_READ = "/home/wikiprep/wikiprep/work/WikiParser/ID_Text.txt";
-    //private final static String OUTPUT_FILE_PATH = "/home/wikiprep/wikiprep/work/TarCreator/Files/";
-    private final static String TXT_FILE_TO_READ = "/Volumes/Untitled/wikiprep/WikiOutput/ID_Text.txt";
-    private final static String OUTPUT_FILE_PATH = "/Volumes/Untitled/wikiprep/WikiOutput/Files/";
+    private final static String TXT_FILE_TO_READ = "/home/wikiprep/wikiprep/work/ID_Text.txt";
+    private final static String OUTPUT_FILE_PATH = "/home/wikiprep/wikiprep/work/TarCreator/Files/";
+//    private final static String TXT_FILE_TO_READ = "/Volumes/Untitled/wikiprep/WikiOutput/ID_Text_short.txt";
+//    private final static String OUTPUT_FILE_PATH = "/Volumes/Untitled/wikiprep/WikiOutput/Files1/";
 
     /**
      * @param args the command line arguments
@@ -61,11 +60,11 @@ public class TarCreator {
 //        tc.readFiles();
             tc.readFile(tc.getFileName());
             tc.processLineByLine();
-            for (int i = 0; i < tc.folderNumber; i++) {
-                tc.readFilesJustWritten(OUTPUT_FILE_PATH + "Files" + i);
-                tc.compressFiles(tc.getFiles(), new File("wikiTar"), fos, taos);
-            }
+            tc.readFilesJustWritten(OUTPUT_FILE_PATH + "Files");
+            tc.compressFiles(tc.getFiles(), new File("wikiTar"), fos, taos);
+            tc.deleteFilesJustWritten(OUTPUT_FILE_PATH + "Files");
         }
+
     }
 
 //    public void readFiles() {
@@ -129,6 +128,17 @@ public class TarCreator {
         String target_dir = path + "/";
         File dir = new File(target_dir);
         files = new ArrayList<>(Arrays.asList(dir.listFiles()));
+    }
+
+    private void deleteFilesJustWritten(String path) {
+        String target_dir = path + "/";
+        File dir = new File(target_dir);
+
+        File[] fileList = dir.listFiles();
+        for (File f : fileList) {
+            f.delete();
+        }
+
     }
 
     public void compressFiles(ArrayList<File> files, File file, FileOutputStream fos, TarArchiveOutputStream taos) throws IOException {
